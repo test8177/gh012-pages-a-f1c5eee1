@@ -1,0 +1,77 @@
+name: GH058 Pages revisit low permission
+
+on:
+  workflow_dispatch:
+    inputs:
+      case:
+        required: true
+        type: string
+      artifact_id:
+        required: false
+        type: string
+      deployment_id:
+        required: false
+        type: string
+      foreign_sha:
+        required: false
+        type: string
+      marker:
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - shell: bash
+        env:
+          MARKER: ${{ inputs.marker }}
+        run: |
+          set -euo pipefail
+          mkdir -p cross-site
+          printf '%s\n' "<!doctype html><meta charset=utf-8><p>${MARKER}-CROSS</p>" > cross-site/index.html
+      - uses: actions/upload-pages-artifact@5f327015a708106f6f1b7c9a633901af30fe80cb
+        with:
+          name: gh058-cross-job
+          path: cross-site
+          retention-days: 1
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - shell: bash
+        env:
+          MARKER: ${{ inputs.marker }}
+        run: |
+          set -euo pipefail
+          mkdir -p site
+          printf '%s\n' "<!doctype html><meta charset=utf-8><p>${MARKER}</p>" > site/index.html
+      - uses: actions/upload-pages-artifact@5f327015a708106f6f1b7c9a633901af30fe80cb
+        with:
+          name: github-pages
+          path: site
+          retention-days: 1
+      - uses: ./.github/actions/gh058-revisit
+        env:
+          GH058_CASE: ${{ inputs.case }}
+          GH058_ARTIFACT_ID: ${{ inputs.artifact_id }}
+          GH058_DEPLOYMENT_ID: ${{ inputs.deployment_id }}
+          GH058_FOREIGN_SHA: ${{ inputs.foreign_sha }}
+          GH058_MARKER: ${{ inputs.marker }}
+          GH058_GITHUB_TOKEN: ${{ github.token }}
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: gh058-result-${{ github.run_id }}
+          path: gh058-result.json
+          if-no-files-found: error
+          retention-days: 1

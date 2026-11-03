@@ -1,0 +1,57 @@
+name: GH012 Pages binding probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: control or foreign
+        required: true
+        type: choice
+        options:
+          - control
+          - foreign
+      foreign_artifact_id:
+        description: Exact owned Repo B artifact ID for the foreign cell
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  pages: write
+  id-token: write
+
+jobs:
+  probe:
+    environment:
+      name: github-pages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact probe source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Create inert control Pages payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p site
+          printf '%s\n' '<!doctype html><meta charset="utf-8"><title>GH012 A</title><p>GH012-A-PRIVATE-CONTROL</p>' > site/index.html
+      - name: Upload own Pages artifact
+        uses: actions/upload-pages-artifact@5f327015a708106f6f1b7c9a633901af30fe80cb
+        with:
+          name: github-pages
+          path: site
+          retention-days: 1
+      - name: Submit exact deployment cell
+        uses: ./.github/actions/gh012-probe
+        env:
+          GH012_MODE: ${{ inputs.mode }}
+          GH012_FOREIGN_ARTIFACT_ID: ${{ inputs.foreign_artifact_id }}
+          GH012_GITHUB_TOKEN: ${{ github.token }}
+      - name: Upload sanitized result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: gh012-result-${{ github.run_id }}
+          path: gh012-result.json
+          if-no-files-found: error
+          retention-days: 1

@@ -1,0 +1,5 @@
+name: GH012 Pages binding probe
+description: Submit one sanitized Pages deployment binding cell
+runs:
+  using: node20
+  main: main.mjs

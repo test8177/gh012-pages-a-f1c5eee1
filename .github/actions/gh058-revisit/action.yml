@@ -1,0 +1,5 @@
+name: GH058 Pages revisit action
+description: Run one bounded Pages artifact/deployment binding cell
+runs:
+  using: node20
+  main: main.mjs
